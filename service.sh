@@ -24,4 +24,12 @@ until [ "$(getprop sys.boot_completed)" = "1" ]; do sleep 1; done
       ifconfig "$IFACE" ${ALIAS_IP} up 2>/dev/null || true
     fi
   fi
+  if command -v iptables >/dev/null 2>&1; then
+    iptables -C OUTPUT -p udp --dport 443 -j DROP 2>/dev/null || iptables -I OUTPUT -p udp --dport 443 -j DROP
+    iptables -C FORWARD -p udp --dport 443 -j DROP 2>/dev/null || iptables -I FORWARD -p udp --dport 443 -j DROP
+  fi
+  if command -v ip6tables >/dev/null 2>&1; then
+    ip6tables -C OUTPUT -p udp --dport 443 -j DROP 2>/dev/null || ip6tables -I OUTPUT -p udp --dport 443 -j DROP
+    ip6tables -C FORWARD -p udp --dport 443 -j DROP 2>/dev/null || ip6tables -I FORWARD -p udp --dport 443 -j DROP
+  fi
 ) &
