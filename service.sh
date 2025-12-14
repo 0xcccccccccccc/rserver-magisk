@@ -37,6 +37,8 @@ until [ "$(getprop sys.boot_completed)" = "1" ]; do sleep 1; done
     ip6tables -C FORWARD -p udp --dport 8443 -j DROP 2>/dev/null || ip6tables -I FORWARD -p udp --dport 8443 -j DROP
   fi
   WPAD_FILE="$MODDIR/wpad.dat"
+  WPAD_PORT=8081
+  BUSYBOX="/data/adb/magisk/busybox"
   cat >"$WPAD_FILE" <<'PAC'
 function FindProxyForURL(url, host) {
   if (isPlainHostName(host) || dnsDomainIs(host, "wpad") || host === "10.10.10.10" || isInNet(host, "10.10.10.0", "255.255.255.0")) {
@@ -45,8 +47,10 @@ function FindProxyForURL(url, host) {
   return "PROXY 10.10.10.10:8080; DIRECT";
 }
 PAC
-  if command -v busybox >/dev/null 2>&1; then
-    busybox httpd -p ${ALIAS_IP}:80 -h "$MODDIR" -f 2>/dev/null &
+  if [ -x "$BUSYBOX" ]; then
+    "$BUSYBOX" httpd -p ${ALIAS_IP}:$WPAD_PORT -h "$MODDIR" -f 2>/dev/null &
+  elif command -v busybox >/dev/null 2>&1; then
+    busybox httpd -p ${ALIAS_IP}:$WPAD_PORT -h "$MODDIR" -f 2>/dev/null &
   else
     (
       while true; do
@@ -57,9 +61,12 @@ PAC
           printf 'Content-Length: %s\r\n' "$LEN"
           printf 'Connection: close\r\n\r\n'
           cat "$WPAD_FILE"
-        } | nc -l -p 80 -s "$ALIAS_IP" -w 1
+        } | nc -l -p $WPAD_PORT -s "$ALIAS_IP" -w 1
       done
     ) &
+  fi
+  if command -v iptables >/dev/null 2>&1; then
+    iptables -t nat -C PREROUTING -i "$IFACE" -d "$ALIAS_IP" -p tcp --dport 80 -j REDIRECT --to-port $WPAD_PORT 2>/dev/null || iptables -t nat -I PREROUTING -i "$IFACE" -d "$ALIAS_IP" -p tcp --dport 80 -j REDIRECT --to-port $WPAD_PORT
   fi
   if command -v dnsmasq >/dev/null 2>&1; then
     dnsmasq --listen-address=127.0.0.1 --port=5353 --no-resolv --no-hosts --bind-interfaces --address=/wpad/10.10.10.10 2>/dev/null || true
