@@ -6,7 +6,7 @@ until [ "$(getprop sys.boot_completed)" = "1" ]; do sleep 1; done
   i=0
   IFACE=""
   while [ $i -lt 30 ]; do
-    IFACE=$(ip -o link 2>/dev/null | awk -F': ' '/\bap0\b|\bwlan0\b|\bwlan1\b/{print $2}' | head -n1)
+    IFACE=$(ip -o link 2>/dev/null | awk -F': ' '/state UP/{print $2}' | cut -d: -f1 | awk '/^(ap|wlan|softap)[0-9]+$/{print; exit}')
     if [ -n "$IFACE" ]; then
       if ip -o addr show dev "$IFACE" 2>/dev/null | grep -q ' inet '; then
         break
