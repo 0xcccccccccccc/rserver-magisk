@@ -1,6 +1,6 @@
 id=rserver
 name=RServer for Android
-version=0.0.2
-versionCode=002
+version=0.0.3
+versionCode=003
 author=0xcccccccccccc
 description=RServer Magisk module for Android OS. RServer is an async proxy server written in Rust. To know more, visit https://github.com/gauravssnl/rserver .
